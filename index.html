@@ -1,0 +1,288 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>全国 1580年秋 戦略地図 — 塗りの地図（12.5m）</title>
+<style>
+  :root { --bg: #15181c; --panel: #1f2328; --ink: #eceae2; --dim: #a3a49c; --line: #343a40; --accent: #e2a35a; }
+  * { box-sizing: border-box; }
+  html, body { height: 100%; }
+  body { margin: 0; background: var(--bg); color: var(--ink); font: 14px/1.55 "Hiragino Kaku Gothic ProN", "Noto Sans JP", system-ui, sans-serif; display: flex; flex-direction: column; }
+  header { display: flex; flex-wrap: wrap; gap: 8px 14px; align-items: center; padding: 9px 14px; border-bottom: 1px solid var(--line); background: var(--panel); }
+  h1 { font-size: 15px; margin: 0; letter-spacing: .05em; }
+  h1 small { color: var(--dim); font-weight: 400; margin-left: 6px; letter-spacing: 0; }
+  a { color: var(--accent); }
+  button, select { font: inherit; color: var(--ink); background: #2a2f35; border: 1px solid var(--line); border-radius: 4px; padding: 2px 10px; cursor: pointer; }
+  .chk { display: inline-flex; gap: 4px; align-items: center; color: var(--dim); font-size: 13px; cursor: pointer; }
+  .wrap { flex: 1; display: grid; grid-template-columns: 1fr 300px; min-height: 0; }
+  #view { position: relative; overflow: hidden; cursor: grab; touch-action: none; }
+  #view.drag { cursor: grabbing; }
+  #layer { position: absolute; left: 0; top: 0; transform-origin: 0 0; }
+  .tiles { position: absolute; left: 0; top: 0; pointer-events: none; user-select: none; }
+  .tiles img { position: absolute; }
+  .tiles.ov img { image-rendering: pixelated; }
+  #roads { position: absolute; left: 0; top: 0; pointer-events: none; }
+  #labels { position: absolute; left: 0; top: 0; }
+  .fac { position: absolute; transform: translate(-50%, -100%); display: flex; align-items: center; gap: 3px; pointer-events: none; white-space: nowrap; }
+  .fac i { display: block; border-radius: 3px; font: 700 12px/1 "Hiragino Mincho ProN", "Noto Serif JP", serif; font-style: normal; text-align: center; box-shadow: 0 1px 3px #0009; }
+  .fac.castle i { background: #f5efe0; border: 2px solid #7a1f1f; color: #7a1f1f; }
+  .fac.castle.l2 i { background: #e9e4d6; border-color: #8a6a4a; color: #6a4a2a; }
+  .fac.temple i, .fac.shrine i { background: #f2f0ea; border: 2px solid #5a4a7a; color: #5a4a7a; }
+  .fac b { font-size: 12px; color: #fff2c9; text-shadow: 0 0 2px #000, 0 0 4px #000; }
+  .fac.t1 i { width: 16px; height: 16px; font-size: 10px; line-height: 12px; } .fac.t2 i { width: 19px; height: 19px; line-height: 15px; }
+  .fac.t3 i, .fac.tcustom i, .fac.t4 i { width: 23px; height: 23px; font-size: 14px; line-height: 19px; }
+  .lab { position: absolute; transform: translate(-50%, -50%); white-space: nowrap; pointer-events: none; color: #fff; text-shadow: 0 0 2px #000a, 0 0 4px #000a; font-size: 12px; }
+  .lab.town.t3, .lab.town.t4 { font-size: 14px; font-weight: 700; }
+  .lab.dom { font-size: 15px; font-weight: 700; letter-spacing: .2em; text-shadow: 0 0 3px #000, 0 0 6px #000; }
+  .lab.road { color: #ffe1d6; font-size: 11px; }
+  .lab.prov { font: 700 13px/1 "Hiragino Mincho ProN", "Noto Serif JP", serif; letter-spacing: .35em; color: #fffdf4; opacity: .88; text-shadow: 0 0 2px #000c, 0 0 5px #0009; }
+  aside { border-left: 1px solid var(--line); background: var(--panel); padding: 12px 14px; overflow: auto; font-size: 12.5px; }
+  aside h2 { font-size: 13px; color: var(--accent); margin: 14px 0 6px; }
+  aside h2:first-child { margin-top: 0; }
+  .muted { color: var(--dim); }
+  .sw { display: inline-block; width: 11px; height: 11px; border-radius: 2px; margin-right: 5px; vertical-align: -1px; }
+  #zoomv { color: var(--dim); font-size: 12px; min-width: 5.5em; display: inline-block; text-align: center; }
+  @media (max-width: 860px) { .wrap { grid-template-columns: 1fr; grid-template-rows: 64vh auto; } aside { border-left: 0; border-top: 1px solid var(--line); } }
+</style>
+</head>
+<body>
+<header>
+  <h1>全国 1580年秋<small>塗りの地図・北が上・12.5m</small></h1>
+  <div><button id="zout">−</button> <span id="zoomv"></span> <button id="zin">＋</button></div>
+  <select id="jump"><option value="">移動…</option></select>
+  <label class="chk"><input type="checkbox" id="optCastle" checked>城・寺社</label>
+  <label class="chk"><input type="checkbox" id="optName" checked>名前</label>
+  <label class="chk"><input type="checkbox" id="optDom">領</label>
+  <label class="chk"><input type="checkbox" id="optProv" checked>国境</label>
+  <label class="chk"><input type="checkbox" id="optCls">地形区分</label>
+  <label class="chk"><input type="checkbox" id="optRoad">街道</label>
+  
+</header>
+<div class="wrap">
+  <div id="view"><div id="layer">
+    <div class="tiles" id="tBase"></div>
+    <div class="tiles ov" id="tCls" style="display:none"></div>
+    <div class="tiles ov" id="tDom" style="display:none"></div>
+  </div><canvas id="roads"></canvas><div id="labels"></div></div>
+  <aside id="side">読み込み中…</aside>
+</div>
+<script type="module">
+const $ = (id) => document.getElementById(id);
+const meta = await (await fetch('meta.json')).json();
+const borders = meta.borders ? await (await fetch(meta.borders)).json() : { lines: [], labels: [] };
+const view = $('view'), layer = $('layer'), labels = $('labels'), cv = $('roads'), ctx = cv.getContext('2d');
+view.style.background = meta.deep;
+const TS = meta.tileSize, NL = meta.levels, W = meta.width, H = meta.height;
+let zoom = 1 / 64, ox = 0, oy = 0;
+const ZMAX = Math.pow(2, -(meta.minLevel || 0));                                                  // 最大拡大は L0 等倍（1画素 12.5m を画面の1画素に）。それより寄ってもぼやけるだけ
+// 描いた陸の範囲（meta.landBox。無ければ描いたブロックの範囲）。初期表示をここに合わせる
+const LAND = meta.landBox || (() => {
+  const B = 4096, rc = (meta.rendered || []).map((b) => [+b.slice(1, 3), +b.slice(4, 6)]);
+  if (!rc.length) return [0, 0, W, H];
+  return [Math.min(...rc.map((v) => v[1])) * B, Math.min(...rc.map((v) => v[0])) * B, (Math.max(...rc.map((v) => v[1])) + 1) * B, (Math.max(...rc.map((v) => v[0])) + 1) * B];
+})();
+const zfit = () => Math.min(view.clientWidth / (LAND[2] - LAND[0]), view.clientHeight / (LAND[3] - LAND[1])) * 0.97;
+const zmin = () => Math.min(Math.min(view.clientWidth / W, view.clientHeight / H) * 0.9, zfit());
+// ---- タイル：段 L（L=0 が 12.5m、1増えるごとに半分）。無いタイルは背景（遠い海）のまま ----
+function makeLayer(el, kind, ext, minL) {
+  const cache = new Map(), missing = new Set();
+  return function render(on) {
+    if (!on) { el.style.display = 'none'; return; } el.style.display = 'block';
+    let L = Math.max(0, Math.min(NL - 1, Math.floor(Math.log2(1 / zoom) + 0.25)));
+    L = Math.max(L, minL);
+    const f = 2 ** L, span = TS * f * zoom, vw = view.clientWidth, vh = view.clientHeight;
+    const nx = Math.ceil(W / (TS * f)), ny = Math.ceil(H / (TS * f));
+    const x0 = Math.max(0, Math.floor(-ox / span)), x1 = Math.min(nx - 1, Math.floor((vw - ox) / span));
+    const y0 = Math.max(0, Math.floor(-oy / span)), y1 = Math.min(ny - 1, Math.floor((vh - oy) / span));
+    const want = new Set();
+    for (let ty = y0; ty <= y1; ty++) for (let tx = x0; tx <= x1; tx++) {
+      const key = `${L}/${tx}_${ty}`; if (missing.has(key)) continue; want.add(key);
+      if (cache.has(key)) continue;
+      const im = new Image(); im.alt = ''; im.dataset.level = L; const pad = kind === 'base' ? 1.5 * f : 0;
+      im.onerror = () => { missing.add(key); im.remove(); cache.delete(key); };
+      im.src = meta.url[kind].replace('{L}', L).replace('{x}', tx).replace('{y}', ty);
+      Object.assign(im.style, { left: `${tx * TS * f}px`, top: `${ty * TS * f}px`, width: `${TS * f + pad}px`, height: `${TS * f + pad}px` });   // 地図は継ぎ目の隙間を消すため、その段の1.5画素ぶん重ねる（画面で約1〜2画素）。半透明の重ね絵は重ねない（線が出る）
+      el.appendChild(im); cache.set(key, im);
+    }
+    for (const [k, im] of cache) if (!want.has(k)) {
+      if (+im.dataset.level !== L) { const ready = [...want].every((w) => !cache.has(w) || cache.get(w).complete); if (!ready) continue; }
+      im.remove(); cache.delete(k);
+    }
+  };
+}
+const rBase = makeLayer($('tBase'), 'base', 'jpg', 0), rCls = makeLayer($('tCls'), 'cls', 'png', meta.overlayMinLevel), rDom = makeLayer($('tDom'), 'dom', 'png', meta.overlayMinLevel);
+// ---- 名前・城：拡大率に応じて出す（第1層の城は常に、第2層・寺社・町は寄ったとき） ----
+// 重なり処理：優先順（巨城・tier3 → 国名 → 領 → 城 tier2 → 城 tier1 → 町・寺社（格の高い順。同じ格なら町が先）→ 街道名）に置き、
+// 1画素 50m 以下まで寄ったときは（巨城・tier3 → 城 tier2 → 城 tier1 → 国名 → …）の順。
+// 先に置いた枠と重なるものは隠す。30px 以内に同名の城が出ている町は、城に含めて出さない
+const items = [];
+const add = (el, x, y, minZoom, pri) => { el.dataset.x = x; el.dataset.y = y; el.dataset.mz = minZoom; el._pri = pri; el._n = items.length; labels.appendChild(el); items.push(el); };
+const baseName = (s) => s.replace(/（[^）]*）/g, '').replace(/(城下|城|館)$/, '').trim();
+const castleByName = new Map();
+const GLYPH = { castle: '城', temple: '寺', shrine: '社' };
+for (const c of meta.castles) {
+  const d = document.createElement('div'); d.className = `fac castle t${c.tier} l${c.layer}`; d.dataset.kind = 'fac';
+  d.innerHTML = `<i>城</i><b>${c.name}</b>`;
+  const big = c.tier === 3 || c.tier === 'custom';
+  // 全国表示では巨城・tier3 だけ。第1層の tier2・tier1 は 1/32 から（1/64 では関東などで重なりすぎる）。第2層は 1/12 から
+  add(d, c.x, c.y, c.layer === 1 ? (big ? 1 / 140 : 1 / 32) : 1 / 12, big ? [0, c.layer, c.tier === 'custom' ? 0 : 1] : [c.tier === 2 ? 3 : 4, c.layer, 0]);
+  const bn = baseName(c.name); if (!castleByName.has(bn)) castleByName.set(bn, []); castleByName.get(bn).push(d);
+}
+for (const f of meta.facilities) {
+  const d = document.createElement('div');
+  if (GLYPH[f.kind]) { d.className = `fac ${f.kind} t${f.tier}`; d.dataset.kind = 'fac'; d.innerHTML = `<i>${GLYPH[f.kind]}</i><b>${f.name}</b>`; add(d, f.x, f.y, f.tier >= 4 ? 1 / 32 : 1 / 8, [5, -f.tier, 1]); }
+  else {
+    d.className = `lab town t${f.tier}`; d.dataset.kind = 'name'; d.textContent = f.name; add(d, f.x, f.y + 14, f.tier >= 3 ? 1 / 32 : 1 / 8, [5, -f.tier, 0]);
+    d._same = castleByName.get(baseName(f.name)) || null;   // 30px 以内に同名の城が出ていれば、町の名前は城に含める（出さない）
+  }
+}
+for (const dm of meta.domains || []) {
+  const d = document.createElement('div'); d.className = 'lab dom'; d.dataset.kind = 'dom'; d.textContent = dm.name;
+  d.style.color = (meta.daimyo[dm.daimyo] || {}).color || '#fff'; add(d, dm.x, dm.y, 1 / 48, [2, -(dm.gou || 0), 0]);
+}
+for (const pl of borders.labels) {
+  const d = document.createElement('div'); d.className = 'lab prov'; d.dataset.kind = 'prov'; d.textContent = pl.name;
+  add(d, pl.x, pl.y, pl.gou >= 150 ? 1 / 260 : 1 / 120, [1, -(pl.gou || 0), 0]);
+}
+const roadLab = [];
+for (const r of meta.roads) if (r.name && r.tier <= 2) {
+  const k = Math.floor(r.pts.length / 4) * 2; const d = document.createElement('div'); d.className = 'lab road'; d.dataset.kind = 'road'; d.textContent = r.name.split('（')[0];
+  add(d, r.pts[k], r.pts[k + 1] - 10, 1 / 16, [7, r.tier, 0]);
+}
+// 優先順に並べた一覧（並びは変わらないので一度だけ）
+// 寄った表示（1画素 50m 以下＝zoom ≥ 1/4）では、城 tier2・tier1 を国名より先に置く（大きな国名の下で城が隠れないように）
+const NEAR_Z = 1 / 4;
+const grp = (el, near) => near && (el._pri[0] === 3 || el._pri[0] === 4) ? el._pri[0] / 10 : el._pri[0];   // 3→0.3, 4→0.4（巨城 0 と国名 1 の間）
+const cmpPri = (near) => (a, b) => { const ga = grp(a, near), gb = grp(b, near); if (ga !== gb) return ga - gb;
+  for (let i = 1; i < 3; i++) if (a._pri[i] !== b._pri[i]) return a._pri[i] - b._pri[i]; return a._n - b._n; };
+const orderedFar = [...items].sort(cmpPri(false)), orderedNear = [...items].sort(cmpPri(true));
+const opt = { fac: true, name: true, dom: false, cls: false, road: false, prov: true };
+function drawRoads() {
+  const vw = view.clientWidth, vh = view.clientHeight, dpr = devicePixelRatio || 1;
+  if (cv.width !== vw * dpr || cv.height !== vh * dpr) { cv.width = vw * dpr; cv.height = vh * dpr; cv.style.width = vw + 'px'; cv.style.height = vh + 'px'; }
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0); ctx.clearRect(0, 0, vw, vh);
+  drawBorders(vw, vh);
+  if (!opt.road) return;
+  const COL = { 1: '#c0392b', 2: '#e67e22', 3: '#b7950b', 4: '#d63384' }, WD = { 1: 3, 2: 2.4, 3: 1.8, 4: 1.2 };
+  const x0 = -ox / zoom, y0 = -oy / zoom, x1 = (vw - ox) / zoom, y1 = (vh - oy) / zoom;
+  for (const r of meta.roads) {
+    if (r.tier === 4 && zoom < 1 / 24) continue;
+    const p = r.pts; let inside = false;
+    for (let i = 0; i < p.length; i += 2) if (p[i] > x0 && p[i] < x1 && p[i + 1] > y0 && p[i + 1] < y1) { inside = true; break; }
+    if (!inside) continue;
+    ctx.beginPath(); ctx.strokeStyle = COL[r.tier]; ctx.lineWidth = WD[r.tier]; ctx.lineJoin = 'round';
+    for (let i = 0; i < p.length; i += 2) { const X = ox + p[i] * zoom, Y = oy + p[i + 1] * zoom; i ? ctx.lineTo(X, Y) : ctx.moveTo(X, Y); }
+    ctx.stroke();
+  }
+}
+// 国境：白い破線（東京域の borders.png と同じ見た目）。川が国境の所は川の中心線に沿う（borders.json）
+function drawBorders(vw, vh) {
+  if (!opt.prov) return;
+  const x0 = -ox / zoom - 50, y0 = -oy / zoom - 50, x1 = (vw - ox) / zoom + 50, y1 = (vh - oy) / zoom + 50;
+  ctx.save(); ctx.strokeStyle = 'rgba(255,255,255,0.92)'; ctx.lineWidth = zoom >= 1 / 16 ? 2 : 1.5; ctx.lineJoin = 'round'; ctx.lineCap = 'butt';
+  ctx.setLineDash(zoom >= 1 / 16 ? [9, 6] : [5, 4]);
+  const step = zoom < 1 / 64 ? 4 : zoom < 1 / 16 ? 2 : 1;          // 遠いときは頂点を間引く
+  for (const l of borders.lines) {
+    const p = l.pts; let inside = false;
+    for (let i = 0; i < p.length; i += 2) if (p[i] > x0 && p[i] < x1 && p[i + 1] > y0 && p[i + 1] < y1) { inside = true; break; }
+    if (!inside) continue;
+    ctx.beginPath();
+    for (let i = 0; i < p.length; i += 2 * step) { const X = ox + p[i] * zoom, Y = oy + p[i + 1] * zoom; i ? ctx.lineTo(X, Y) : ctx.moveTo(X, Y); }
+    const n = p.length - 2; ctx.lineTo(ox + p[n] * zoom, oy + p[n + 1] * zoom);
+    ctx.stroke();
+  }
+  ctx.restore();
+}
+function apply() {
+  rBase(true); rCls(opt.cls); rDom(opt.dom);
+  layer.style.transform = `translate(${ox}px, ${oy}px) scale(${zoom})`;
+  const vw = view.clientWidth, vh = view.clientHeight;
+  // 1) 出す候補を決めて置く（大きさを測るため、いったん全部見せる）
+  const cand = [];
+  for (const el of (zoom >= NEAR_Z - 1e-9 ? orderedNear : orderedFar)) {
+    const k = el.dataset.kind;
+    const on = (k === 'fac' ? opt.fac : k === 'dom' ? opt.dom : k === 'prov' ? opt.prov : k === 'road' ? opt.road && opt.name : opt.name) && zoom >= +el.dataset.mz;
+    const X = ox + el.dataset.x * zoom, Y = oy + el.dataset.y * zoom;
+    if (!on || X < -200 || Y < -50 || X > vw + 200 || Y > vh + 50) { if (el._shown !== false) { el.style.display = 'none'; el._shown = false; } continue; }
+    if (k === 'prov') { const fs = `${Math.round(Math.min(30, Math.max(11, 13 + 3.2 * Math.log2(zoom * 100))))}px`; if (el.style.fontSize !== fs) { el.style.fontSize = fs; el._wh = null; } }   // 国名は拡大率に応じて
+    el.style.display = ''; el.style.left = `${X}px`; el.style.top = `${Y}px`; el._X = X; el._Y = Y; el._shown = true;
+    cand.push(el);
+  }
+  // 2) 大きさを測る（文字の大きさが変わらない限り覚えておく）
+  for (const el of cand) if (!el._wh) el._wh = [el.offsetWidth, el.offsetHeight];
+  // 3) 優先順に置く。先に置いた枠（余白2px）と重なるものは隠す。格子（96px）で近くの枠だけくらべる
+  const CELL = 96, grid = new Map(), M = 2;
+  const cells = (b) => { const o = []; for (let gy = Math.floor(b[1] / CELL); gy <= Math.floor(b[3] / CELL); gy++) for (let gx = Math.floor(b[0] / CELL); gx <= Math.floor(b[2] / CELL); gx++) o.push(gx + ',' + gy); return o; };
+  for (const el of cand) {
+    const [w, h] = el._wh, X = el._X, Y = el._Y;
+    let hide = false;
+    if (el._same) for (const c of el._same) if (c._placed && Math.hypot(c._X - X, c._Y - (Y - 14 * zoom)) <= 30) { hide = true; break; }   // 同名の城が出ている
+    const b = el.dataset.kind === 'fac' ? [X - w / 2 - M, Y - h - M, X + w / 2 + M, Y + M] : [X - w / 2 - M, Y - h / 2 - M, X + w / 2 + M, Y + h / 2 + M];
+    const cs = cells(b);
+    if (!hide) outer: for (const key of cs) for (const o of grid.get(key) || []) if (b[0] < o[2] && b[2] > o[0] && b[1] < o[3] && b[3] > o[1]) { hide = true; break outer; }
+    el._placed = !hide;
+    if (hide) { el.style.display = 'none'; el._shown = false; continue; }
+    for (const key of cs) { if (!grid.has(key)) grid.set(key, []); grid.get(key).push(b); }
+  }
+  for (const el of items) if (!el._shown) el._placed = false;
+  drawRoads();
+  const m = 12.5 / zoom; $('zoomv').textContent = m >= 1000 ? `1画素 ${(m / 1000).toFixed(1)}km` : m < 100 ? `1画素 ${+m.toFixed(1)}m` : `1画素 ${Math.round(m)}m`;
+}
+function zoomAt(z, cx, cy) {
+  z = Math.min(ZMAX, Math.max(zmin(), z));
+  const ix = (cx - ox) / zoom, iy = (cy - oy) / zoom;
+  zoom = z; ox = cx - ix * zoom; oy = cy - iy * zoom; apply();
+}
+function goTo(x, y, z) { zoom = Math.min(ZMAX, z); ox = view.clientWidth / 2 - x * zoom; oy = view.clientHeight / 2 - y * zoom; apply(); }
+// 移動先：主な場所と巨城
+const sel = $('jump');
+for (const pl of meta.places || []) { const o = document.createElement('option'); o.value = JSON.stringify([pl.x, pl.y, 1 / 4]); o.textContent = pl.name; sel.appendChild(o); }
+for (const c of meta.castles.filter((c) => c.tier === 'custom')) { const o = document.createElement('option'); o.value = JSON.stringify([c.x, c.y, 1 / 2]); o.textContent = c.name; sel.appendChild(o); }
+sel.onchange = () => { if (sel.value) { const [x, y, z] = JSON.parse(sel.value); goTo(x, y, z); } };
+// 最初は全国。?at=x,y,z で場所を指定できる（確認用）。?opt=dom,cls,road,-prov で重ね絵
+const qs = new URLSearchParams(location.search);
+for (const k of (qs.get('opt') || '').split(',').filter(Boolean)) { const off = k.startsWith('-'), kk = off ? k.slice(1) : k; if (kk in opt) opt[kk] = !off; }
+for (const [id, k] of [['optCastle', 'fac'], ['optName', 'name'], ['optDom', 'dom'], ['optCls', 'cls'], ['optRoad', 'road'], ['optProv', 'prov']]) $(id).checked = opt[k];
+if (qs.get('at')) { const [x, y, z] = qs.get('at').split(',').map(Number); goTo(x, y, z); }
+else goTo((LAND[0] + LAND[2]) / 2, (LAND[1] + LAND[3]) / 2, zfit());   // 最初は描いた陸の範囲に合わせる
+$('zin').onclick = () => zoomAt(zoom * 1.4, view.clientWidth / 2, view.clientHeight / 2);
+$('zout').onclick = () => zoomAt(zoom / 1.4, view.clientWidth / 2, view.clientHeight / 2);
+view.addEventListener('wheel', (e) => {
+  e.preventDefault(); const r = view.getBoundingClientRect();
+  if (e.ctrlKey || Math.abs(e.deltaY) > Math.abs(e.deltaX)) zoomAt(zoom * Math.exp(-e.deltaY * 0.0015), e.clientX - r.left, e.clientY - r.top);
+  else { ox -= e.deltaX; apply(); }
+}, { passive: false });
+const pts = new Map(); let last = null;
+view.addEventListener('pointerdown', (e) => { view.setPointerCapture(e.pointerId); pts.set(e.pointerId, { x: e.clientX, y: e.clientY }); view.classList.add('drag'); last = null; });
+view.addEventListener('pointermove', (e) => {
+  if (!pts.has(e.pointerId)) return;
+  const prev = pts.get(e.pointerId); pts.set(e.pointerId, { x: e.clientX, y: e.clientY });
+  if (pts.size === 1) { ox += e.clientX - prev.x; oy += e.clientY - prev.y; apply(); return; }
+  const [a, b] = [...pts.values()]; const r = view.getBoundingClientRect();
+  const dist = Math.hypot(a.x - b.x, a.y - b.y), mx = (a.x + b.x) / 2 - r.left, my = (a.y + b.y) / 2 - r.top;
+  if (last) { ox += mx - last.mx; oy += my - last.my; zoomAt(zoom * dist / last.dist, mx, my); }
+  last = { dist, mx, my };
+});
+const up = (e) => { pts.delete(e.pointerId); last = null; if (!pts.size) view.classList.remove('drag'); };
+view.addEventListener('pointerup', up); view.addEventListener('pointercancel', up);
+window.addEventListener('resize', apply);
+for (const [id, k] of [['optCastle', 'fac'], ['optName', 'name'], ['optDom', 'dom'], ['optCls', 'cls'], ['optRoad', 'road'], ['optProv', 'prov']]) $(id).onchange = (e) => { opt[k] = e.target.checked; apply(); };
+$('side').innerHTML = `
+  <h2>この絵</h2>
+  <div>全国一枚 ${W.toLocaleString()} × ${H.toLocaleString()} 画素（1画素 12.5m・北が上）。512画素のタイルを ${NL} 段（段0が12.5m、1段ごとに半分）に分け、拡大率に合う段だけを読む。描いていない所と遠い海は濃紺。</div>
+  <div class="muted" style="margin-top:6px">全国 ${meta.rendered.length} ブロックを描画${(meta.renderedSea || []).length ? `（ほかに海の縁 ${meta.renderedSea.length} ブロック）` : ''}（M5・${meta.paintVersion || ''}）。描き方は東京域の型（多方向の陰影・谷の暗さと尾根の明るさ・影の青み・区分ごとの色・海のグラデーション）を全国の座標で繰り返したもの。川は M4 の中心線と川幅で描く（上流は細く河口ほど太い。色は浅い海と同じ）。湖は岸から沖へ濃く、湿地は葦の緑に水たまり。範囲外の陸（国後など）は灰色（陰影だけ残し、湖と岸の光は描かない）。名前は優先順（巨城 → 国名 → 城 → 寺社 → 町）に置き、重なるものは隠す。</div>
+  <h2>国境</h2>
+  <div class="muted">1580年の令制国（68か国）。郷を単位に国を割り当てた境（白い破線）。武蔵・下総の隅田川・古隅田川・古利根川、尾張・美濃の境川筋は、川の中心線に沿わせた。</div>
+  <h2>地形区分</h2>
+  <ul style="list-style:none;padding-left:0">
+    <li><span class="sw" style="background:#ffe066"></span>平地　<span class="sw" style="background:#78dc78"></span>丘　<span class="sw" style="background:#eb6e28"></span>高地　<span class="sw" style="background:#c82828"></span>通行不可</li>
+    <li><span class="sw" style="background:#50a0ff"></span>川・湖　<span class="sw" style="background:#5ac8c8"></span>湿地　<span class="sw" style="background:#a0a0a0"></span>範囲外の陸</li>
+  </ul>
+  <h2>街道</h2>
+  <div class="muted">赤＝幹線、橙＝主要路、黄土＝準主要路、桃＝自動の脇道（城・施設を最寄りの道へ）。主要街道は地域調査の通過点を地形に沿って結んだ（M7・M9）。</div>
+  <h2>領</h2>
+  <div class="muted">郷ルール v1.1（移動時間−格ボーナス が最小の第1層の城。郷のグラフの上で計算）。色は大名の色。郷の最終生成は M3 の確定後。</div>`;
+</script>
+</body>
+</html>
