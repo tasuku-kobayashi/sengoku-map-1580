@@ -99,14 +99,21 @@ function makeLayer(el, kind, ext, minL) {
     for (let ty = y0; ty <= y1; ty++) for (let tx = x0; tx <= x1; tx++) {
       const key = `${L}/${tx}_${ty}`; if (missing.has(key)) continue; want.add(key);
       if (cache.has(key)) continue;
-      const im = new Image(); im.alt = ''; im.dataset.level = L; const pad = kind === 'base' ? 1.5 * f : 0;
+      const im = new Image(); im.alt = ''; im.dataset.level = L; im._t = [tx, ty, f];
       im.onerror = () => { missing.add(key); im.remove(); cache.delete(key); };
       im.src = meta.url[kind].replace('{L}', L).replace('{x}', tx).replace('{y}', ty);
-      Object.assign(im.style, { left: `${tx * TS * f}px`, top: `${ty * TS * f}px`, width: `${TS * f + pad}px`, height: `${TS * f + pad}px` });   // 地図は継ぎ目の隙間を消すため、その段の1.5画素ぶん重ねる（画面で約1〜2画素）。半透明の重ね絵は重ねない（線が出る）
       el.appendChild(im); cache.set(key, im);
     }
+    // タイルは画面の座標で置く（巨大な層を transform で縮めると、iPhone の Safari がメモリ不足で落ちるため）。
+    // 地図は継ぎ目の隙間を消すため1画素重ねる。半透明の重ね絵は重ねない（線が出る）
+    const pad = kind === 'base' ? 1 : 0;
+    for (const im of cache.values()) {
+      const [tx, ty, ff] = im._t, s = TS * ff * zoom;
+      const l = Math.floor(ox + tx * s), t = Math.floor(oy + ty * s), r = Math.ceil(ox + (tx + 1) * s), b = Math.ceil(oy + (ty + 1) * s);
+      im.style.left = `${l}px`; im.style.top = `${t}px`; im.style.width = `${r - l + pad}px`; im.style.height = `${b - t + pad}px`;
+    }
     for (const [k, im] of cache) if (!want.has(k)) {
-      if (+im.dataset.level !== L) { const ready = [...want].every((w) => !cache.has(w) || cache.get(w).complete); if (!ready) continue; }
+      if (+im.dataset.level !== L && Math.abs(+im.dataset.level - L) <= 2) { const ready = [...want].every((w) => !cache.has(w) || cache.get(w).complete); if (!ready) continue; }
       im.remove(); cache.delete(k);
     }
   };
@@ -196,7 +203,6 @@ function drawBorders(vw, vh) {
 }
 function apply() {
   rBase(true); rCls(opt.cls); rDom(opt.dom);
-  layer.style.transform = `translate(${ox}px, ${oy}px) scale(${zoom})`;
   const vw = view.clientWidth, vh = view.clientHeight;
   // 1) 出す候補を決めて置く（大きさを測るため、いったん全部見せる）
   const cand = [];
