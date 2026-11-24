@@ -29,6 +29,7 @@
   .fac.castle i { background: #f5efe0; border: 2px solid #7a1f1f; color: #7a1f1f; }
   .fac.castle.l2 i { background: #e9e4d6; border-color: #8a6a4a; color: #6a4a2a; }
   .fac.temple i, .fac.shrine i { background: #f2f0ea; border: 2px solid #5a4a7a; color: #5a4a7a; }
+  .fac.palace i { background: #fbf3dc; border: 2px solid #c0392b; color: #b8860b; }
   .fac b { font-size: 12px; color: #fff2c9; text-shadow: 0 0 2px #000, 0 0 4px #000; }
   .fac.t1 i { width: 16px; height: 16px; font-size: 10px; line-height: 12px; } .fac.t2 i { width: 19px; height: 19px; line-height: 15px; }
   .fac.t3 i, .fac.tcustom i, .fac.t4 i { width: 23px; height: 23px; font-size: 14px; line-height: 19px; }
@@ -127,7 +128,7 @@ const items = [];
 const add = (el, x, y, minZoom, pri) => { el.dataset.x = x; el.dataset.y = y; el.dataset.mz = minZoom; el._pri = pri; el._n = items.length; labels.appendChild(el); items.push(el); };
 const baseName = (s) => s.replace(/（[^）]*）/g, '').replace(/(城下|城|館)$/, '').trim();
 const castleByName = new Map();
-const GLYPH = { castle: '城', temple: '寺', shrine: '社' };
+const GLYPH = { castle: '城', temple: '寺', shrine: '社', palace: '御' };
 for (const c of meta.castles) {
   const d = document.createElement('div'); d.className = `fac castle t${c.tier} l${c.layer}`; d.dataset.kind = 'fac';
   d.innerHTML = `<i>城</i><b>${c.name}</b>`;
