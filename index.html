@@ -140,7 +140,7 @@ for (const c of meta.castles) {
 }
 for (const f of meta.facilities) {
   const d = document.createElement('div');
-  if (GLYPH[f.kind]) { d.className = `fac ${f.kind} t${f.tier}`; d.dataset.kind = 'fac'; d.innerHTML = `<i>${GLYPH[f.kind]}</i><b>${f.name}</b>`; add(d, f.x, f.y, f.tier >= 4 ? 1 / 32 : 1 / 8, [5, -f.tier, 1]); }
+  if (GLYPH[f.kind]) { d.className = `fac ${f.kind} t${f.tier}`; d.dataset.kind = 'fac'; d.innerHTML = `<i>${GLYPH[f.kind]}</i><b>${f.name}</b>`; add(d, f.x, f.y, f.tier >= 4 ? 1 / 32 : 1 / 8, [5, -f.tier, 1]); d._palace = f.kind === 'palace'; }
   else {
     d.className = `lab town t${f.tier}`; d.dataset.kind = 'name'; d.textContent = f.name; add(d, f.x, f.y + 14, f.tier >= 3 ? 1 / 32 : 1 / 8, [5, -f.tier, 0]);
     d._same = castleByName.get(baseName(f.name)) || null;   // 30px 以内に同名の城が出ていれば、町の名前は城に含める（出さない）
@@ -162,7 +162,7 @@ for (const r of meta.roads) if (r.name && r.tier <= 2) {
 // 優先順に並べた一覧（並びは変わらないので一度だけ）
 // 寄った表示（1画素 50m 以下＝zoom ≥ 1/4）では、城 tier2・tier1 を国名より先に置く（大きな国名の下で城が隠れないように）
 const NEAR_Z = 1 / 4;
-const grp = (el, near) => near && (el._pri[0] === 3 || el._pri[0] === 4) ? el._pri[0] / 10 : el._pri[0];   // 3→0.3, 4→0.4（巨城 0 と国名 1 の間）
+const grp = (el, near) => near && (el._pri[0] === 3 || el._pri[0] === 4) ? el._pri[0] / 10 : near && el._palace ? 0.45 : el._pri[0];   // 3→0.3, 4→0.4（巨城 0 と国名 1 の間）。M12：御所は寄った表示で城の次（町より先）
 const cmpPri = (near) => (a, b) => { const ga = grp(a, near), gb = grp(b, near); if (ga !== gb) return ga - gb;
   for (let i = 1; i < 3; i++) if (a._pri[i] !== b._pri[i]) return a._pri[i] - b._pri[i]; return a._n - b._n; };
 const orderedFar = [...items].sort(cmpPri(false)), orderedNear = [...items].sort(cmpPri(true));
