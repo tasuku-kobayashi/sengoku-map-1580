@@ -24,13 +24,14 @@
   .tiles.ov img { image-rendering: pixelated; }
   #roads { position: absolute; left: 0; top: 0; pointer-events: none; }
   #labels { position: absolute; left: 0; top: 0; }
-  .fac { position: absolute; transform: translate(-50%, -100%); display: flex; align-items: center; gap: 3px; pointer-events: none; white-space: nowrap; }
+  .fac { --iw: 16px; position: absolute; transform: translate(calc(var(--iw) / -2), -50%); display: flex; align-items: center; gap: 3px; pointer-events: none; white-space: nowrap; }
   .fac i { display: block; border-radius: 3px; font: 700 12px/1 "Hiragino Mincho ProN", "Noto Serif JP", serif; font-style: normal; text-align: center; box-shadow: 0 1px 3px #0009; }
   .fac.castle i { background: #f5efe0; border: 2px solid #7a1f1f; color: #7a1f1f; }
   .fac.castle.l2 i { background: #e9e4d6; border-color: #8a6a4a; color: #6a4a2a; }
   .fac.temple i, .fac.shrine i { background: #f2f0ea; border: 2px solid #5a4a7a; color: #5a4a7a; }
   .fac.palace i { background: #fbf3dc; border: 2px solid #c0392b; color: #b8860b; }
   .fac b { font-size: 12px; color: #fff2c9; text-shadow: 0 0 2px #000, 0 0 4px #000; }
+  .fac.t1 { --iw: 16px; } .fac.t2 { --iw: 19px; } .fac.t3, .fac.tcustom, .fac.t4 { --iw: 23px; }
   .fac.t1 i { width: 16px; height: 16px; font-size: 10px; line-height: 12px; } .fac.t2 i { width: 19px; height: 19px; line-height: 15px; }
   .fac.t3 i, .fac.tcustom i, .fac.t4 i { width: 23px; height: 23px; font-size: 14px; line-height: 19px; }
   .lab { position: absolute; transform: translate(-50%, -50%); white-space: nowrap; pointer-events: none; color: #fff; text-shadow: 0 0 2px #000a, 0 0 4px #000a; font-size: 12px; }
@@ -217,15 +218,15 @@ function apply() {
     cand.push(el);
   }
   // 2) 大きさを測る（文字の大きさが変わらない限り覚えておく）
-  for (const el of cand) if (!el._wh) el._wh = [el.offsetWidth, el.offsetHeight];
+  for (const el of cand) if (!el._wh) el._wh = [el.offsetWidth, el.offsetHeight, el.firstChild && el.firstChild.offsetWidth || 0];
   // 3) 優先順に置く。先に置いた枠（余白2px）と重なるものは隠す。格子（96px）で近くの枠だけくらべる
   const CELL = 96, grid = new Map(), M = 2;
   const cells = (b) => { const o = []; for (let gy = Math.floor(b[1] / CELL); gy <= Math.floor(b[3] / CELL); gy++) for (let gx = Math.floor(b[0] / CELL); gx <= Math.floor(b[2] / CELL); gx++) o.push(gx + ',' + gy); return o; };
   for (const el of cand) {
     const [w, h] = el._wh, X = el._X, Y = el._Y;
     let hide = false;
-    if (el._same) for (const c of el._same) if (c._placed && Math.hypot(c._X - X, c._Y - (Y - 14 * zoom)) <= 30) { hide = true; break; }   // 同名の城が出ている
-    const b = el.dataset.kind === 'fac' ? [X - w / 2 - M, Y - h - M, X + w / 2 + M, Y + M] : [X - w / 2 - M, Y - h / 2 - M, X + w / 2 + M, Y + h / 2 + M];
+    if (el._same) for (const c of el._same) if (c._placed && Math.hypot(c._X - X, c._Y - (Y - 14 * zoom)) <= 40) { hide = true; break; }   // 同名の城が出ている
+    const iw = el._wh[2]; const b = el.dataset.kind === 'fac' ? [X - iw / 2 - M, Y - h / 2 - M, X - iw / 2 + w + M, Y + h / 2 + M] : [X - w / 2 - M, Y - h / 2 - M, X + w / 2 + M, Y + h / 2 + M];
     const cs = cells(b);
     if (!hide) outer: for (const key of cs) for (const o of grid.get(key) || []) if (b[0] < o[2] && b[2] > o[0] && b[1] < o[3] && b[3] > o[1]) { hide = true; break outer; }
     el._placed = !hide;
